@@ -1,6 +1,9 @@
 use crate::CHUNK_SIZE;
-use std::fs::File;
-use std::io::{self, BufReader, Read, Result};
+use std::{
+    fs::File,
+    io::{self, BufReader, Read, Result},
+    sync::mpsc::Sender,
+};
 
 pub struct PipeReader(Box<dyn Read>);
 
@@ -13,9 +16,19 @@ impl PipeReader {
         Ok(PipeReader(inner))
     }
 
-    pub fn read(&mut self) -> Result<Vec<u8>> {
+    pub fn read(&mut self, stats_tx: Sender<Vec<u8>>) -> Result<()> {
         let mut buf = [0; CHUNK_SIZE];
-        let num_read = self.0.read(&mut buf)?;
-        Ok(Vec::from(&buf[..num_read]))
+        loop {
+            let num_read = match self.0.read(&mut buf) {
+                Ok(0) => break,
+                Ok(n) => n,
+                Err(_) => break, 
+            };
+            if stats_tx.send(Vec::from(&buf[..num_read])).is_err() {
+                break;
+            }
+        }
+        let _ = stats_tx.send(Vec::new());
+        Ok(())
     }
 }

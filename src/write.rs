@@ -1,5 +1,6 @@
 use std::{
     fs::File,
+    sync::mpsc::Receiver,
     io::{self, BufWriter, ErrorKind, Result, Write},
 };
 
@@ -18,13 +19,19 @@ impl PipeWriter {
         Ok(PipeWriter(inner))
     }
 
-    pub fn write(&mut self, buf: Vec<u8>) -> Result<bool> {
-        if let Err(e) = self.0.write_all(&buf) {
-            if e.kind() == ErrorKind::BrokenPipe {
-                return Ok(false);
-            };
-            return Err(e);
+    pub fn write(&mut self, write_rx: Receiver<Vec<u8>>) -> Result<()> {
+        loop {
+            let buf = write_rx.recv().unwrap();
+            if buf.is_empty() {
+                break;
+            }
+            if let Err(e) = self.0.write_all(&buf) {
+                if e.kind() == ErrorKind::BrokenPipe {
+                    return Ok(());
+                };
+                return Err(e);
+            }
         }
-        Ok(true)
+        Ok(())
     }
 }
