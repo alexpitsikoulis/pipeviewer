@@ -9,10 +9,7 @@ pub struct PipeWriter(Box<dyn Write>);
 impl PipeWriter {
     pub fn new(outfile: Option<String>) -> Result<Self> {
         let inner: Box<dyn Write> = match outfile {
-            Some(outfile) => match File::open(&outfile) {
-                Ok(file) => Box::new(BufWriter::new(file)),
-                Err(_) => Box::new(BufWriter::new(File::create(&outfile)?)),
-            },
+            Some(outfile) => Box::new(File::create(outfile)?),
             None => Box::new(BufWriter::new(io::stdout())),
         };
 

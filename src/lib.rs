@@ -1,6 +1,7 @@
 mod read;
 mod stats;
 mod write;
+pub mod timer;
 
 pub use read::*;
 pub use stats::*;

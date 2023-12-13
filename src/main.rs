@@ -15,7 +15,11 @@ pub struct Args {
 }
 
 fn main() -> Result<()> {
-    let Args{infile, outfile, silent} = Args::parse();
+    let Args {
+        infile,
+        outfile,
+        silent,
+    } = Args::parse();
 
     let (stats_tx, stats_rx) = unbounded();
     let (write_tx, write_rx) = bounded(1024);
