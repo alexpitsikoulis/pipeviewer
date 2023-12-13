@@ -1,6 +1,5 @@
-use std::io::{Read, Write, BufReader, BufWriter, self};
-
 use clap::Parser;
+use std::io::Result;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -14,26 +13,14 @@ pub struct Args {
 }
 
 impl Args {
-    pub fn get() -> (Box<dyn Read>, Box<dyn Write>, bool) {
-        match Args::parse() {
+    pub fn get() -> Result<(Option<String>, Option<String>, bool)> {
+        let (reader, writer, silent) = match Args::parse() {
             Args {
                 infile,
                 outfile,
                 silent,
-            } => (
-                match infile {
-                    Some(infile) => Box::new(BufReader::new(std::fs::File::open(infile).unwrap())),
-                    None => Box::new(io::stdin()),
-                },
-                match outfile {
-                    Some(outfile) => Box::new(BufWriter::new(match std::fs::File::open(outfile.clone()) {
-                        Ok(file) => file,
-                        Err(_) => std::fs::File::create(outfile).unwrap(),
-                    })),
-                    None => Box::new(io::stdout()),
-                },
-                silent,
-            ),
-        }
+            } => (infile, outfile, silent),
+        };
+        Ok((reader, writer, silent))
     }
 }

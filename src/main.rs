@@ -1,28 +1,20 @@
-mod args;
-use args::Args;
-use std::io::{ErrorKind, Read, Result, Write};
-
-const CHUNK_SIZE: usize = 16 * 1024;
+use pipeviewer::{stats, Args, PipeReader, PipeWriter};
+use std::io::Result;
 
 fn main() -> Result<()> {
-    let (mut reader, mut writer, silent) = Args::get();
+    let (infile, outfile, silent) = Args::get()?;
+    let mut reader = PipeReader::new(infile)?;
+    let mut writer = PipeWriter::new(outfile)?;
     let mut total_bytes = 0;
-    let mut buf = [0; CHUNK_SIZE];
     loop {
-        let num_read = match reader.read(&mut buf) {
-            Ok(0) => break,
-            Ok(x) => Ok(x),
-            Err(e) => Err(e),
-        }?;
-        total_bytes += num_read;
-        if !silent {
-            eprint!("\rbytes read: {}", total_bytes);
-        }
-        if let Err(e) = writer.write_all(&mut buf) {
-            if e.kind() == ErrorKind::BrokenPipe {
-                break;
-            }
-            return Err(e);
+        let buf = match reader.read() {
+            Ok(x) if x.is_empty() => break,
+            Ok(x) => x,
+            Err(_) => break,
+        };
+        stats(silent, buf.len(), &mut total_bytes, false);
+        if !writer.write(buf)? {
+            break;
         }
     }
     Ok(())
