@@ -1,8 +1,8 @@
 use crate::CHUNK_SIZE;
+use crossbeam::channel::Sender;
 use std::{
     fs::File,
     io::{self, BufReader, Read, Result},
-    sync::mpsc::Sender,
 };
 
 pub struct PipeReader(Box<dyn Read>);
@@ -16,19 +16,21 @@ impl PipeReader {
         Ok(PipeReader(inner))
     }
 
-    pub fn read(&mut self, stats_tx: Sender<Vec<u8>>) -> Result<()> {
+    pub fn read(&mut self, stats_tx: Sender<usize>, write_tx: Sender<Vec<u8>>) -> Result<()> {
         let mut buf = [0; CHUNK_SIZE];
         loop {
             let num_read = match self.0.read(&mut buf) {
                 Ok(0) => break,
                 Ok(n) => n,
-                Err(_) => break, 
+                Err(_) => break,
             };
-            if stats_tx.send(Vec::from(&buf[..num_read])).is_err() {
+            let _ = stats_tx.send(num_read);
+            if write_tx.send(Vec::from(&buf[..num_read])).is_err() {
                 break;
             }
         }
-        let _ = stats_tx.send(Vec::new());
+        let _ = stats_tx.send(0);
+        let _ = write_tx.send(Vec::new());
         Ok(())
     }
 }

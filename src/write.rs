@@ -1,6 +1,6 @@
+use crossbeam::channel::Receiver;
 use std::{
     fs::File,
-    sync::mpsc::Receiver,
     io::{self, BufWriter, ErrorKind, Result, Write},
 };
 
